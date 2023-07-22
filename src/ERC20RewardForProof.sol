@@ -2,37 +2,29 @@
 pragma solidity ^0.8.20;
 
 import "./TransactionInclusionProver.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-contract ERC20RewardForProof {
+contract ERC20RewardForProof is ERC20 {
 
     TransactionInclusionProver private _prover;
-    IERC20 private _token;
-    uint256 private _tokensToSend;
+    uint256 private _rewardAmount;
 
     constructor(
         address proverAddress,
-        address tokenAddress,
-        uint256 tokensToSend
-    ) {
+        uint256 rewardAmount,
+        string memory name,
+        string memory symbol
+    ) ERC20(name, symbol) {
         _prover = TransactionInclusionProver(proverAddress);
-        _token = IERC20(tokenAddress);
-        _tokensToSend = tokensToSend;
+        _rewardAmount = rewardAmount;
     }
 
-    function sendTokens(ProverDto calldata data) external {
-        bool isIncluded = _prover.proveTransactionInclusion(data);
+    function claimReward(ProverDto calldata inclusionProof) external {
+        bool isIncluded = _prover.proveTransactionInclusion(inclusionProof);
 
         require(isIncluded, "Transaction not included in the block!");
 
-        require(
-            _token.balanceOf(address(this)) >= _tokensToSend,
-            "Not enough tokens in the contract to reward!"
-        );
-
-        require(
-            _token.transfer(msg.sender, _tokensToSend),
-            "Failed to transfer tokens to sender!"
-        );
+        _mint(msg.sender, _rewardAmount);
     }
 }
+
